@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "HMIS Autopilot",
+  "version": "1.3.1",
+  "description": "Automates login, role-switching, and patient form filling on HMIS Punjab with AI-powered diagnosis and investigation suggestions.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/content.ts-loader-Buhr6XuI.js"
+      ],
+      "matches": [
+        "*://hmis.punjab.gov.pk/*"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "*://hmis.punjab.gov.pk/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "*://hmis.punjab.gov.pk/*"
+      ],
+      "resources": [
+        "assets/config-MDwnjWcN.js",
+        "assets/content.ts-iSKp2_xE.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}

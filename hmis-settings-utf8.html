@@ -1,0 +1,406 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="https://hmis.punjab.gov.pk/favicon.ico" type="image/ico" />
+            <title>Login - HMIS</title>
+        <!-- Bootstrap -->
+    <link href="https://hmis.punjab.gov.pk/assets/vendors/bootstrap/dist/css/bootstrap.min.css?v=28" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://hmis.punjab.gov.pk/assets/fonts/all.min.css?v=28" />
+    <link rel="stylesheet" href="https://hmis.punjab.gov.pk/assets/fonts/line-awesome.min.css?v=28" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <!-- NProgress -->
+    <link href="https://hmis.punjab.gov.pk/assets/vendors/nprogress/nprogress.css?v=28" rel="stylesheet">
+    <!-- iCheck -->
+    <link href="https://hmis.punjab.gov.pk/assets/vendors/iCheck/skins/flat/green.css?v=28" rel="stylesheet">
+    <!-- Custom Theme Style -->
+    <link href="https://hmis.punjab.gov.pk/assets/build/css/custom.min.css?v=28" rel="stylesheet">
+    <link href="https://hmis.punjab.gov.pk/assets/build/css/custom.css?v=28" rel="stylesheet">
+    <!-- Bootstrap Select -->
+<link rel="stylesheet" type="text/css" href="https://hmis.punjab.gov.pk/css/bootstrap-select.min.css?v=28" />
+</head>
+
+<body class="nav-sm">
+    <style>
+    .drop_op button{
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 14px !important;
+    line-height: 34px !important;
+    color: rgb(116, 115, 115) !important;
+    text-align: left !important;
+    padding-left: 65px;
+    border-radius: 6px;
+    /* border-left: 3px solid rgb(42, 214, 141); */
+    border-right: 0px;
+    border-bottom: 0px;
+    border-top: 0px;
+    height: 40px !important;
+    width: 328px !important;
+    }
+    .formicon1 {
+    top: 37% !important;
+}
+.bootstrap-select .dropdown-menu>li>a {
+    color: #353535;
+    padding: 0px 9px;
+    font-family: "Roboto", Arial, "Droid Sans", sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 11px;
+}
+
+.bootstrap-select{
+    border: 1px solid #cccccc5c !important;
+    border-left: 3px solid rgb(42, 214, 141) !important;
+}
+
+.bs-searchbox .form-control{
+    padding-left: 10px !important;
+    border-left: 0 !important;
+    height: 34px !important;
+}
+.bs-searchbox .dropdown-toggle{
+    padding-left: 56px !important;
+}
+
+.hospit .text{
+    padding-top: 8px !important;
+}
+
+</style>
+
+<div class="auth-container">
+    <div class="container-box h-100">
+        <div class="row h-100 g-0 align-items-center">
+            <div class="col-md-6 col-lg-4 px-0" style="margin-top: -20px;">
+
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="login-main">
+                            <span><img src="https://hmis.punjab.gov.pk/images/logo/hmis.png" alt="HMIS" width="90" style="max-width: 90px;"></span>
+                            <span class="login-text-inner ms-3">Hospital Management Information System </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="auth-form-container d-flex align-items-center">
+                    <form method="POST" action="https://hmis.punjab.gov.pk/login" class="text-left" autocomplete="off">
+                        <input type="hidden" name="_token" value="t4vftHROZ1NcHuemEQIkLbIyJvdw1BKmvqt2h82c">                        <div class="row">
+                            <div class="col-12 text-left">
+                                <h4>Login Please</h4>
+                                <p class="login-para pt-3">Enter your login details to continue further</p>
+                            </div>
+                            <div class="col-12">
+
+                                                                <div class="position-relative hospit">
+                                    <select class="drop_op  bootstrap-select-picker form-control  mb-3" autofocus name="hospitalId" id="hospitalId" style="font-size: 13px;width:100%" data-live-search="true">
+                                       <option value=""> Hospital </option>
+                                        
+                                                                                          <option value="1" >
+                                                    Bahawal Victoria Hospital, Bahawalpur
+                                                </option>
+                                                                                            <option value="3" >
+                                                    Allama Iqbal Teaching Hospital, DG Khan
+                                                </option>
+                                                                                            <option value="4" >
+                                                    Allied Hospital, Faisalabad
+                                                </option>
+                                                                                            <option value="5" >
+                                                    Children Hospital, Faisalabad
+                                                </option>
+                                                                                            <option value="6" >
+                                                    Faisalabad Institute of Cardiology, Faisalabad
+                                                </option>
+                                                                                            <option value="7" >
+                                                    Allied-II Hospital (Old DHQ), Faisalabad
+                                                </option>
+                                                                                            <option value="8" >
+                                                    Faisalabad Teaching Hospital, Faisalabad
+                                                </option>
+                                                                                            <option value="9" >
+                                                    Gujranwala Medical College Teaching Hospital
+                                                </option>
+                                                                                            <option value="10" >
+                                                    Chaudhary Pervaiz Elahi Institute of Cardiology, Wazirabad
+                                                </option>
+                                                                                            <option value="11" >
+                                                    Aziz Bhatti Shaheed Teaching Hospital, Gujrat
+                                                </option>
+                                                                                            <option value="12" >
+                                                    The Children’s Hospital, University of Child Health Sciences, Lahore
+                                                </option>
+                                                                                            <option value="13" >
+                                                    Govt. Kot Khawaja Saeed Teaching Hospital, Lahore
+                                                </option>
+                                                                                            <option value="14" >
+                                                    Govt. M Nawaz Sharief Teaching Hospital, Lahore
+                                                </option>
+                                                                                            <option value="15" >
+                                                    Govt. Mian Munshi Teaching Hospital, Lahore
+                                                </option>
+                                                                                            <option value="17" >
+                                                    Lady Aitchison Hospital, Lahore
+                                                </option>
+                                                                                            <option value="18" >
+                                                    Govt. Said Mitha Teaching Hospital, Lahore
+                                                </option>
+                                                                                            <option value="19" >
+                                                    Lahore General Hospital, Lahore
+                                                </option>
+                                                                                            <option value="21" >
+                                                    Govt. Teaching Hospital, Shahdara, Lahore
+                                                </option>
+                                                                                            <option value="22" >
+                                                    Jinnah Hospital, Lahore
+                                                </option>
+                                                                                            <option value="23" >
+                                                    Punjab Dental Hospital, Lahore
+                                                </option>
+                                                                                            <option value="24" >
+                                                    Lady Willingdon Hospital, Lahore
+                                                </option>
+                                                                                            <option value="25" >
+                                                    Punjab Institute of Cardiology, Lahore
+                                                </option>
+                                                                                            <option value="26" >
+                                                    Mayo Hospital, Lahore
+                                                </option>
+                                                                                            <option value="27" >
+                                                    PUNJAB INSTITUTE OF MENTAL HEALTH, LAHORE
+                                                </option>
+                                                                                            <option value="30" >
+                                                    Services Hospital, Lahore
+                                                </option>
+                                                                                            <option value="31" >
+                                                    Sir Ganga Ram Hospital, Lahore
+                                                </option>
+                                                                                            <option value="32" >
+                                                    Children Hospital, Multan
+                                                </option>
+                                                                                            <option value="33" >
+                                                    Nishtar Hospital, Multan
+                                                </option>
+                                                                                            <option value="36" >
+                                                    Chaudhary Pervaiz Elahi Institute of Cardiology, Multan
+                                                </option>
+                                                                                            <option value="38" >
+                                                    Nishtar Institute of Dentistry, Multan
+                                                </option>
+                                                                                            <option value="39" >
+                                                    Shaikh Zayed Hospital, R. Y. Khan
+                                                </option>
+                                                                                            <option value="40" >
+                                                    Benazir Bhutto Hospital, Rawalpindi
+                                                </option>
+                                                                                            <option value="41" >
+                                                    Rawalpindi Teaching Hospital, Rawalpindi
+                                                </option>
+                                                                                            <option value="42" >
+                                                    Holy Family Hospital, Rawalpindi
+                                                </option>
+                                                                                            <option value="43" >
+                                                    Rawalpindi Institute Of Cardiology, Rawalpindi
+                                                </option>
+                                                                                            <option value="44" >
+                                                    Syed Muhammad Hussain Samli Hospital &amp; Nawaz Sharif Cardiology Center
+                                                </option>
+                                                                                            <option value="46" >
+                                                    Sahiwal Teaching Hospital, Sahiwal
+                                                </option>
+                                                                                            <option value="48" >
+                                                    Dr. Faisal Masood Teaching Hospital, Sargodha
+                                                </option>
+                                                                                            <option value="50" >
+                                                    Allama Iqbal Memorial Hospital, Sialkot
+                                                </option>
+                                                                                            <option value="51" >
+                                                    Govt. Sardar Begum Teaching Hospital, Sialkot
+                                                </option>
+                                                                                            <option value="60" >
+                                                    Nishter II Tertiary Care Hospital, Multan
+                                                </option>
+                                                                                            <option value="61" >
+                                                    Gujranwala Teaching Hospital (OLD DHQ), Gujranwala
+                                                </option>
+                                                                                            <option value="62" >
+                                                    Nawab Sir Sadiq Muhammad Khan Abbasi Hospital, Bahawalpur
+                                                </option>
+                                                                                            <option value="63" >
+                                                    PITB Testing Hospital 1
+                                                </option>
+                                                                                            <option value="64" >
+                                                    PITB Testing Hospital 2
+                                                </option>
+                                                                                            <option value="65" >
+                                                    Sardar Fateh Muhammad Khan Buzdar Institute of Cardiology, DG Khan
+                                                </option>
+                                                                                            <option value="67" >
+                                                    Pak Italian Burn Centre, Nishtar Medical University, Multan
+                                                </option>
+                                                                                            <option value="68" >
+                                                    The Jinnah Burn &amp; Reconstructive Surgery Center, Lahore
+                                                </option>
+                                                                                            <option value="69" >
+                                                    Punjab Institute of Neuro Sciences, Lahore
+                                                </option>
+                                                                                            <option value="70" >
+                                                    Fatima Jinnah Institute of Dental Science, Lahore
+                                                </option>
+                                                                                            <option value="81" >
+                                                    Maternal and Child Health Center, Institute of Public Health, Lahore
+                                                </option>
+                                                                                            <option value="86" >
+                                                    DHQ Teaching Hospital, Narowal
+                                                </option>
+                                                                                            <option value="88" >
+                                                    Pervaiz Elahi Institute of Cardiology (PIC), Bahawalpur
+                                                </option>
+                                                                                            <option value="89" >
+                                                    Punjab Central Warehouse
+                                                </option>
+                                                                                            <option value="91" >
+                                                    Institute of Ophthalmology &amp; Allied Vision Sciences, Multan
+                                                </option>
+                                                                                            <option value="92" >
+                                                    UHS Clinical Laboratory Services
+                                                </option>
+                                                                                            <option value="93" >
+                                                    Ittefaq Hospital Trust, Lahore
+                                                </option>
+                                                                                            <option value="94" >
+                                                    University of Lahore Teaching Hospital
+                                                </option>
+                                                                                            <option value="95" >
+                                                    Sharif Medical City Hospital, Lahore
+                                                </option>
+                                                                                            <option value="96" >
+                                                    Bahria International Hospitals Orchard, Lahore
+                                                </option>
+                                                                                            <option value="97" >
+                                                    Mukhtar A. Sheikh Memorial Welfare Hospital, Multan
+                                                </option>
+                                                                                            <option value="98" >
+                                                    Buch International Hospital, Multan
+                                                </option>
+                                                                                            <option value="99" >
+                                                    Medicare Hospital, Multan
+                                                </option>
+                                                                                            <option value="100" >
+                                                    Maroof Healthcare Services Islamabad
+                                                </option>
+                                                                                            <option value="103" >
+                                                    Bahria International Hospital, Rawalpindi
+                                                </option>
+                                                                                            <option value="104" >
+                                                    Farooq Hospital West Wood Lahore
+                                                </option>
+                                                                                            <option value="105" >
+                                                    Farooq Hospital Islamabad Branch Rawalpindi
+                                                </option>
+                                                                                            <option value="106" >
+                                                    Nawaz Sharif Institute of Cardiology, Sargodha
+                                                </option>
+                                                                                            <option value="107" >
+                                                    Mujahid Hospital, Faisalabad
+                                                </option>
+                                                                                            <option value="109" >
+                                                    Nawaz Sharif institute of Cancer Treatment &amp; Research Hospital, Lahore
+                                                </option>
+                                                                                            <option value="108" >
+                                                    Sahiwal Institute of Cardiology, Sahiwal
+                                                </option>
+                                                                                            <option value="110" >
+                                                    Jinnah Institute of Cardiology
+                                                </option>
+                                                                                            <option value="111" >
+                                                    Govt. TB Hospital, Sargodha
+                                                </option>
+                                            
+                                     </select>
+                                     <div class="position-absolute formicon formicon1 top-50 start-0 translate-middle-y">
+                                     <i class="bi-building" style="color: #D5D5D5;"></i>
+                                    </div>
+                                </div>
+                                
+                                
+                                <div class="position-relative">
+                                    <input id="username" name="username" type="text" required  class="form-control mb-3" placeholder="Username" />
+                                    <div class="position-absolute formicon top-50 start-0 translate-middle-y">
+                                        <i class="bi-person"></i>
+                                    </div>
+                                                                    </div>
+                                    <div class="position-relative">
+                                        <input id="password" name="password" type="password" required class="form-control mb-3" placeholder="Password" />
+                                        <div class="position-absolute formicon top-50 start-0 translate-middle-y">
+                                            <i class="bi-lock"></i>
+                                        </div>
+                                                                            </div>
+                                <div class="col-12- position-relative" >
+
+                                    
+                                    
+
+                                                                            <strong style='position: absolute;z-index: 1;top: 12.2px;left: 65px;color: rgb(116, 115, 115);font-weight: 600;'>What is 2 + 7 = </strong>
+                                        <div class="position-relative">
+                                            <input type="hidden" name="num1" value="2">
+                                            <input type="hidden" name="num2" value="7">
+                                            <input type="text" name="user_answer" class="form-control mb-3" placeholder="?" required style="padding-left: 152px;padding-left: 152px;font-weight: bold;" />
+                                            <div class="position-absolute formicon top-50 start-0 translate-middle-y">
+                                                <i class="bi-keyboard" style="color: rgb(213, 213, 213);"></i>
+                                            </div>
+                                        </div>
+                                    
+                                        
+                                                                            
+                                    
+                                    <div class="d-grid mt-3">
+                                        <button type="submit" class="btn btn-auth rounded-pill" style="margin: 0">Sign in</button>
+                                    </div>
+                                    <!-- <p class="auth-link text-center" style="font-size: 11px;">
+                                        Developed and Designed By <a href="https://www.pitb.gov.pk" target="_blank">PITB</a>
+                                    </p> -->
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>localStorage.removeItem('selectedCategoryId');</script>
+    
+
+       
+    <!-- jQuery -->
+    <script src="https://hmis.punjab.gov.pk/assets/vendors/jquery/dist/jquery.min.js?v=28"></script>
+    <!-- Bootstrap -->
+    <script src="https://hmis.punjab.gov.pk/assets/vendors/bootstrap/dist/js/bootstrap.bundle.min.js?v=28"></script>
+    <!-- Custom Theme Scripts -->
+    <script src="https://hmis.punjab.gov.pk/assets/build/js/custom.min.js?v=28"></script>
+<!-- Bootstrap Select -->
+<script src="https://hmis.punjab.gov.pk/js/bootstrap-select.min.js?v=28"></script>
+
+<script>
+        $(document).ready(function() {
+            //bootstrap-select
+            // alert('dsadasda');
+            $(function () {
+                $('.bootstrap-select-picker').selectpicker();
+            });
+          
+        });
+</script>
+</body>
+</html>

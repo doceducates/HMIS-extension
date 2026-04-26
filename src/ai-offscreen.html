@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HMIS AI Engine (Offscreen)</title>
+</head>
+<body>
+  <!-- This page is never shown to the user. It runs the AI embedding model
+       in a hidden document to avoid Chrome MV3 service worker limitations. -->
+  <script type="module" src="/src/ai-offscreen.ts"></script>
+</body>
+</html>

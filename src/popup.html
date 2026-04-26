@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HMIS Autopilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/icon16.png">
+  <style>
+    /* ─── Design Tokens ─── */
+    :root {
+      --bg-deep:    #0f1419;
+      --bg-panel:   #1a1f2e;
+      --bg-input:   #141820;
+      --bg-surface: #1e2433;
+      --border:     #2a3040;
+      --border-focus: #22d3ee;
+      --text:       #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim:   #475569;
+      --accent:     #22d3ee;
+      --accent-glow: rgba(34, 211, 238, 0.15);
+      --success:    #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.1);
+      --danger:     #ef4444;
+      --danger-bg:  rgba(239, 68, 68, 0.1);
+      --warning:    #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.1);
+      --radius:     10px;
+      --radius-sm:  6px;
+      --font:       'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:  'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 380px;
+      min-height: 440px;
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, var(--bg-panel), #1f2640);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #06b6d4);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(34, 211, 238, 0.25);
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    .header-subtitle {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { background: var(--bg-surface); color: var(--text); }
+    .icon-btn.active { color: var(--accent); background: var(--accent-glow); }
+
+    /* ─── Status Pill ─── */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .status-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-pill.idle { background: var(--bg-surface); color: var(--text-muted); }
+    .status-pill.idle .dot { background: var(--text-dim); }
+    .status-pill.running { background: var(--success-bg); color: var(--success); }
+    .status-pill.running .dot { background: var(--success); animation: pulse-dot 1.5s infinite; }
+    .status-pill.error { background: var(--danger-bg); color: var(--danger); }
+    .status-pill.error .dot { background: var(--danger); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ─── View Container ─── */
+    .views {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .view {
+      padding: 16px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+
+    .view.hidden {
+      display: none;
+    }
+
+    /* ─── Dashboard View ─── */
+
+    /* Primary Action Button */
+    .action-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .action-btn.start {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3);
+    }
+    .action-btn.start:hover {
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .action-btn.stop {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
+      animation: glow-red 2s infinite;
+    }
+    .action-btn.stop:hover {
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes glow-red {
+      0%, 100% { box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3); }
+      50% { box-shadow: 0 2px 20px rgba(239, 68, 68, 0.5); }
+    }
+
+    .action-btn .btn-icon {
+      font-size: 16px;
+    }
+
+    /* Quick Toggles */
+    .toggles-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .toggle-chip {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 6px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .toggle-chip:hover { border-color: var(--accent); background: var(--bg-surface); }
+    .toggle-chip.active { border-color: var(--accent); background: var(--accent-glow); }
+
+    .toggle-chip .chip-icon { font-size: 18px; }
+    .toggle-chip .chip-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.3;
+    }
+    .toggle-chip.active .chip-label { color: var(--accent); }
+
+    .toggle-chip .chip-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .toggle-chip.active .chip-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+    /* Activity Feed */
+    .feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    .feed-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+
+    .feed-clear {
+      font-size: 10px;
+      color: var(--text-dim);
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .feed-clear:hover { color: var(--text-muted); background: var(--bg-surface); }
+
+    .activity-feed {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      height: 180px;
+      overflow-y: auto;
+      padding: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .activity-feed::-webkit-scrollbar { width: 4px; }
+    .activity-feed::-webkit-scrollbar-track { background: transparent; }
+    .activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .feed-entry {
+      display: flex;
+      gap: 8px;
+      padding: 2px 0;
+      animation: feed-in 0.3s ease;
+    }
+
+    @keyframes feed-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feed-entry .fe-time {
+      color: var(--text-dim);
+      flex-shrink: 0;
+      font-size: 10px;
+      min-width: 56px;
+    }
+
+    .feed-entry .fe-icon {
+      flex-shrink: 0;
+      width: 14px;
+      text-align: center;
+      font-size: 10px;
+    }
+
+    .feed-entry .fe-msg {
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+
+    .feed-entry.success .fe-icon { color: var(--success); }
+    .feed-entry.success .fe-msg { color: var(--success); }
+    .feed-entry.error .fe-icon { color: var(--danger); }
+    .feed-entry.error .fe-msg { color: var(--danger); }
+    .feed-entry.progress .fe-icon { color: var(--warning); }
+    .feed-entry.progress .fe-msg { color: var(--warning); }
+    .feed-entry.warning .fe-icon { color: var(--warning); }
+    .feed-entry.warning .fe-msg { color: var(--warning); }
+    .feed-entry.info .fe-icon { color: var(--text-dim); }
+
+    .feed-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 12px;
+      gap: 6px;
+    }
+    .feed-empty .empty-icon { font-size: 24px; opacity: 0.4; }
+
+    /* ─── Settings View ─── */
+    .settings-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .back-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { color: var(--text); background: var(--bg-panel); }
+
+    .settings-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+
+    .card-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .field-group {
+      margin-bottom: 10px;
+    }
+    .field-group:last-child { margin-bottom: 0; }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .field-hint {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 11px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 12px;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: var(--border-focus);
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    input::placeholder { color: var(--text-dim); }
+
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), #06b6d4);
+      color: #0c1220;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s;
+      letter-spacing: 0.3px;
+    }
+    .save-btn:hover {
+      box-shadow: 0 4px 16px rgba(34, 211, 238, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .save-feedback {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+      height: 16px;
+      transition: opacity 0.3s;
+    }
+    .save-feedback.success { color: var(--success); }
+    .save-feedback.error { color: var(--danger); }
+
+    /* ─── AI Badge ─── */
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.15));
+      color: #a78bfa;
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      cursor: default;
+      user-select: none;
+    }
+    .ai-badge:hover::after {
+      content: 'Coming soon — Bonsai 1-bit AI';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 6px;
+      padding: 4px 10px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      z-index: 100;
+    }
+    .ai-badge { position: relative; }
+
+    /* ─── Footer ─── */
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      background: rgba(15, 20, 25, 0.5);
+    }
+
+    .footer-left {
+      justify-self: start;
+    }
+
+    .footer-center {
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-right {
+      justify-self: end;
+    }
+
+    .footer-text {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .footer-link {
+      font-size: 11px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #06b6d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.3px;
+      text-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
+      white-space: nowrap;
+    }
+    .footer-link:hover {
+      filter: brightness(1.2);
+      transform: translateY(-1px);
+      text-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
+    }
+
+    /* ─── About View ─── */
+    .about-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: fade-in 0.4s ease;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent), #0891b2);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: var(--bg-deep);
+      box-shadow: 0 0 20px var(--accent-glow);
+      border: 4px solid var(--bg-panel);
+    }
+
+    .profile-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .profile-role {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .profile-bio {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .profile-stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .vision-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: var(--radius);
+    }
+
+    .vision-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .vision-text {
+      font-size: 12px;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════ HEADER ═══════ -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">
+        <img src="/icon128.png" alt="Robot Icon" style="width: 24px; height: 24px;">
+      </div>
+      <div>
+        <div class="header-title">HMIS Autopilot</div>
+        <div class="header-subtitle">Workflow Automation</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="status-pill" class="status-pill idle">
+        <span class="dot"></span>
+        <span id="status-pill-text">Idle</span>
+      </div>
+      <button id="records-toggle" class="icon-btn" title="Records">📊</button>
+      <button id="about-toggle" class="icon-btn" title="About">ℹ</button>
+      <button id="settings-toggle" class="icon-btn" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <!-- ═══════ DASHBOARD VIEW ═══════ -->
+  <div id="dashboard-view" class="view">
+
+    <!-- Primary Action -->
+    <button id="action-btn" class="action-btn start">
+      <span class="btn-icon">▶</span>
+      <span id="action-btn-text">Start Automation</span>
+    </button>
+
+    <!-- Quick Toggles -->
+    <div class="toggles-row">
+      <div class="toggle-chip" id="toggle-login" title="Auto Login & Solve Captcha">
+        <span class="chip-dot"></span>
+        <span class="chip-icon">🔑</span>
+        <span class="chip-label">Auto<br>Login</span>
+      </div>
+      <div class="toggle-chip" id="toggle-dept" title="Auto Select Department & Clinic">
+        <span class="chip-dot"></span>
+        <span class="chip-icon">🏥</span>
+        <span class="chip-label">Auto<br>Dept</span>
+      </div>
+      <div class="toggle-chip" id="toggle-pilot" title="Auto Fill Patient Forms">
+        <span class="chip-dot"></span>
+        <span class="chip-icon">🤖</span>
+        <span class="chip-label">Auto<br>Pilot</span>
+      </div>
+      <div class="toggle-chip" id="toggle-checkout" title="Auto Checkout Patient after completion">
+        <span class="chip-dot"></span>
+        <span class="chip-icon">🏁</span>
+        <span class="chip-label">Auto<br>Checkout</span>
+      </div>
+      <div class="toggle-chip" id="toggle-ai" title="AI-powered suggestions for missing data">
+        <span class="chip-dot"></span>
+        <span class="chip-icon">🧠</span>
+        <span class="chip-label">AI<br>Assist</span>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="feed-header">
+      <span class="feed-title">Activity Log</span>
+      <button id="feed-clear-btn" class="feed-clear">Clear</button>
+    </div>
+    <div id="activity-feed" class="activity-feed">
+      <div class="feed-empty">
+        <span class="empty-icon">📋</span>
+        <span>No activity yet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ SETTINGS VIEW ═══════ -->
+  <div id="settings-view" class="view hidden">
+    <div class="settings-header">
+      <button id="back-btn" class="back-btn" title="Back to Dashboard">←</button>
+      <span class="settings-title">Settings</span>
+    </div>
+
+    <!-- Credentials -->
+    <div class="card">
+      <div class="card-label">🔐 Credentials</div>
+      <div class="field-group">
+        <label class="field-label" for="username">Username</label>
+        <input type="text" id="username" placeholder="Dr.Name" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="password">Password</label>
+        <input type="password" id="password" placeholder="Password">
+      </div>
+    </div>
+
+    <!-- Role Configuration -->
+    <div class="card">
+      <div class="card-label">🎯 Role Configuration</div>
+      <div class="field-group">
+        <label class="field-label" for="role-id">OPD Role ID</label>
+        <input type="text" id="role-id" placeholder="e.g. 1073 — leave blank for auto-detect">
+        <div class="field-hint">
+          Found in DevTools → inspect the OPD option → copy number from <code>wire:click</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflow Defaults -->
+    <div class="card">
+      <div class="card-label">📝 Workflow Defaults</div>
+      <div class="field-group">
+        <label class="field-label" for="default-complaint">Default Complaint</label>
+        <input type="text" id="default-complaint" placeholder="e.g. Back Pain">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="default-diagnosis">Default Diagnosis</label>
+        <input type="text" id="default-diagnosis" placeholder="e.g. Normal Study">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="default-investigation">Default Investigation</label>
+        <input type="text" id="default-investigation" placeholder="e.g. USG Abdomen">
+      </div>
+    </div>
+
+    <!-- AI Assist -->
+    <div class="card">
+      <div class="card-label">🧠 AI Assist (Tier 2)</div>
+      <div class="field-group">
+        <label class="field-label" for="ai-threshold">Confidence Threshold: <span id="ai-threshold-val">0.50</span></label>
+        <input type="range" id="ai-threshold" min="0.2" max="0.9" step="0.05" value="0.5">
+        <div class="field-hint">
+          Higher threshold = more accurate but fewer suggestions.
+        </div>
+      </div>
+      <div class="field-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+        <div id="ai-status-pill" class="status-pill idle">
+          <span class="dot"></span>
+          <span id="ai-status-text">AI Ready</span>
+        </div>
+        <button id="ai-init-btn" class="feed-clear" style="border: 1px solid var(--border); padding: 4px 8px;">Reload Model</button>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <button id="save-btn" class="save-btn">Save Settings</button>
+    <div id="save-feedback" class="save-feedback"></div>
+  </div>
+
+  <!-- ═══════ RECORDS VIEW ═══════ -->
+  <div id="records-view" class="view hidden">
+    <div class="settings-header">
+      <button id="records-back-btn" class="back-btn" title="Back to Dashboard">←</button>
+      <span class="settings-title">Patient Records</span>
+      <div style="flex: 1;"></div>
+      <button id="clear-records-btn" class="feed-clear" style="border: 1px solid var(--border); padding: 4px 8px;">Clear</button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+      <div class="stat-card" style="background: var(--bg-panel); border: 1px solid var(--border); padding: 10px; border-radius: var(--radius); text-align: center;">
+        <div id="stat-total" style="font-size: 16px; font-weight: 700; color: var(--text);">0</div>
+        <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">Total</div>
+      </div>
+      <div class="stat-card" style="background: var(--success-bg); border: 1px solid var(--success); padding: 10px; border-radius: var(--radius); text-align: center;">
+        <div id="stat-done" style="font-size: 16px; font-weight: 700; color: var(--success);">0</div>
+        <div style="font-size: 9px; color: var(--success); text-transform: uppercase;">Done</div>
+      </div>
+      <div class="stat-card" style="background: var(--danger-bg); border: 1px solid var(--danger); padding: 10px; border-radius: var(--radius); text-align: center;">
+        <div id="stat-err" style="font-size: 16px; font-weight: 700; color: var(--danger);">0</div>
+        <div style="font-size: 9px; color: var(--danger); text-transform: uppercase;">Error</div>
+      </div>
+      <div class="stat-card" style="background: var(--warning-bg); border: 1px solid var(--warning); padding: 10px; border-radius: var(--radius); text-align: center;">
+        <div id="stat-partial" style="font-size: 16px; font-weight: 700; color: var(--warning);">0</div>
+        <div style="font-size: 9px; color: var(--warning); text-transform: uppercase;">Partial</div>
+      </div>
+    </div>
+
+    <!-- Records List -->
+    <div id="records-list" style="height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+      <div class="feed-empty">
+        <span class="empty-icon">📂</span>
+        <span>No records for today</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ABOUT VIEW ═══════ -->
+  <div id="about-view" class="view hidden">
+    <div class="settings-header">
+      <button id="about-back-btn" class="back-btn" title="Back to Dashboard">←</button>
+      <span class="settings-title">About Creator</span>
+    </div>
+
+    <div class="about-content">
+      <div class="profile-card">
+        <div class="profile-avatar">👨‍⚕️</div>
+        <div class="profile-name">Dr. Mudassir</div>
+        <div class="profile-role">Resident Radiologist</div>
+        <div class="profile-bio">
+          Lahore General Hospital (LGH)<br>
+          Workflow Automation Specialist
+        </div>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-value">Radiology</span>
+            <span class="stat-label">Expertise</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">AI Dev</span>
+            <span class="stat-label">Passion</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">LGH</span>
+            <span class="stat-label">Institution</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="vision-card">
+        <div class="vision-title">🧠 Vision & Mission</div>
+        <div class="vision-text">
+          "I have a deep passion for AI and its potential to streamline healthcare workflows. This extension is a step towards empowering radiologists with intelligent automation."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ FOOTER ═══════ -->
+  <div class="footer">
+    <div class="footer-left">
+      <span class="footer-text">v1.3.0</span>
+    </div>
+    <div class="footer-center">
+      <span id="footer-about-link" class="footer-link">👨‍⚕️ Dr. Mudassir</span>
+    </div>
+    <div class="footer-right">
+      <div class="ai-badge" style="margin: 0; padding: 2px 6px; font-size: 9px;">🧠 AI Active</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/popup.ts"></script>
+</body>
+</html>
