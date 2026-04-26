@@ -13,3 +13,4 @@ Thumbs.db
 .vscode
 .settings
 *.code-workspace
+*.pem
