@@ -2,7 +2,7 @@ import { handleLogin } from './modules/login-handler';
 import { handleDepartmentSelection, handleRoleSelection } from './modules/department-handler';
 import { activateAutoPilot } from './modules/patient-workflow';
 import { getCurrentConfig } from './modules/config';
-import { HMISPageContext } from './modules/types';
+import { HMISPageContext, QueuePatient } from './modules/types';
 import { HMIS_SELECTORS } from './modules/selectors';
 import { WorkflowState, reportStatus, setRunning, broadcastQueueStats } from './modules/state';
 
@@ -164,13 +164,81 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         sendResponse({ success: true });
         return true;
     }
+
+    if (request.action === 'GET_LIVE_QUEUE') {
+        const queue = extractLiveQueue();
+        sendResponse({ queue });
+        return true;
+    }
+
+    if (request.action === 'PROCESS_SPECIFIC_PATIENT') {
+        const btnId = request.patientId;
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            reportStatus(`Starting targeted workflow for patient...`, 'progress');
+            setRunning(true);
+            chrome.storage.session.set({ loginAttempts: 0, setupCompleted: true }); // Prevent setup loop
+            btn.click();
+            sendResponse({ success: true });
+        } else {
+            sendResponse({ success: false, error: 'Patient not found on current page' });
+        }
+        return true;
+    }
 });
+
+/**
+ * Extracts the current patient queue from the dashboard table.
+ */
+function extractLiveQueue(): QueuePatient[] {
+    const rows = document.querySelectorAll(HMIS_SELECTORS.DASHBOARD.PATIENT_TABLE + ' tr:not(:has(.dataTables_empty))');
+    const queue: QueuePatient[] = [];
+
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td');
+        // Typical columns: 1:Sr#, 2:Token, 3:Name, 4:MRN, 5:ReferredBy, 6:Status, 7:Age
+        if (cols.length >= 7) {
+            const token = cols[1]?.textContent?.trim() || '';
+            const name = cols[2]?.textContent?.trim() || '';
+            const mrn = cols[3]?.textContent?.trim() || '';
+            const age = cols[6]?.textContent?.trim() || '';
+            
+            // The action button contains the unique ID we need to click to open this patient
+            const actionBtn = row.querySelector('a[id^="tokenPatButton_"]');
+            if (actionBtn) {
+                queue.push({
+                    id: actionBtn.id,
+                    token,
+                    name,
+                    mrn,
+                    age,
+                    status: 'Pending'
+                });
+            }
+        }
+    });
+
+    return queue;
+}
 // --- Storage listener for live config updates ---
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && liveConfig) {
+        let needsReevaluation = false;
+
         for (const [key, { newValue }] of Object.entries(changes)) {
             liveConfig[key] = newValue;
             console.log(`[Config] Dynamic update: ${key} = ${newValue}`);
+            
+            // If any of the main automation toggles are turned ON, we should trigger a re-run
+            if (['autoLogin', 'autoDepartment', 'autoPilotForm', 'autoCheckout'].includes(key) && newValue === true) {
+                needsReevaluation = true;
+            }
+        }
+
+        // If the master switch is running and a sub-toggle was just enabled, instantly react
+        if (needsReevaluation && WorkflowState.isRunning && !WorkflowState.isStopped) {
+            console.log('HMIS Automation: Dynamic toggle enabled. Re-evaluating current page state...');
+            run();
         }
     }
 });

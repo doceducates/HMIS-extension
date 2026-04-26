@@ -2,15 +2,17 @@
  * Summary Extractor — Extracts diagnosis and investigation data from the
  * HMIS patient encounter Summary tab.
  *
- * The Summary page uses card-based sections with headings. This module
- * tries multiple extraction strategies for resilience against HMIS UI changes.
+ * The Summary page uses a 2-column col-md-6 grid with styled headings.
+ * This module tries multiple extraction strategies for resilience.
  *
- * Real-world patterns from radiology practice:
- *   - Some patients have NO provisional diagnosis on summary
- *   - Some patients have 2+ provisional diagnoses
- *   - Radiology section may list imaging (USG Abdomen) OR procedures
- *     (USG guided FNAC, pleural tap, embolization) or nothing at all
- *   - Items often have trailing CPT codes (18-digit numbers) that must be stripped
+ * Verified against live HMIS DOM on 2026-04-25:
+ *   - Sections: Vitals, Presenting Complaints, Diagnosis, Allergies,
+ *     Immunization, Medication, Pathology, Radiology
+ *   - Diagnosis items: "✓ Provisional" on line 1, diagnosis name on line 2
+ *   - Radiology/Pathology items have LONG numeric CPT codes appended
+ *     DIRECTLY to the text with NO space separator:
+ *       "USG FNAC (Fine Needle Aspiration Cytology)00100000000010005"
+ *       "Anti HIV by Elisa001000000000T86720"
  */
 
 import { HMIS_SELECTORS } from './selectors';
@@ -34,7 +36,7 @@ export async function extractDataFromSummary(): Promise<ExtractedSummaryData> {
         investigations: []
     };
 
-    // Strategy 1: Card-based extraction (primary, proven pattern)
+    // Strategy 1: Card/column-based extraction (primary)
     extractFromCards(data);
 
     // Strategy 2: If no cards matched, try broader DOM scan
@@ -67,8 +69,8 @@ export async function extractDataFromSummary(): Promise<ExtractedSummaryData> {
 // ════════════════════════════════════════════════════════════════
 
 /**
- * Strategy 1: Find `.card` / `.panel` / `.section` elements and check
- * their headings for "Diagnosis" or "Radiology".
+ * Strategy 1: Find `.card` / `.col-md-6` / `.panel` / `.section` elements
+ * and check their headings for "Diagnosis" or "Radiology".
  */
 function extractFromCards(data: ExtractedSummaryData): void {
     const cards = document.querySelectorAll(HMIS_SELECTORS.SUMMARY.CARDS);
@@ -104,10 +106,11 @@ function extractFromBroadScan(data: ExtractedSummaryData): void {
 
     allHeaders.forEach(h => {
         const hText = h.textContent?.trim().toLowerCase() || '';
-        const parent = h.closest('.card') || h.parentElement;
+        // Walk up to the nearest container — try .card, .col-md-6, or direct parent
+        const parent = h.closest('.card') || h.closest('.col-md-6') || h.parentElement;
         if (!parent) return;
 
-        const contentItems = parent.querySelectorAll('p, li, .item-text, .summary-item, span.badge');
+        const contentItems = parent.querySelectorAll('p, li, span, .item-text, .summary-item, span.badge');
 
         if (hText.includes('diagnosis')) {
             contentItems.forEach(item => {
@@ -172,32 +175,54 @@ function extractInvestigationItems(items: NodeListOf<Element>, data: ExtractedSu
 /**
  * Clean raw diagnosis text from the summary page.
  * Strips "Provisional - " or "Final - " prefixes and other noise.
+ *
+ * HMIS formats:
+ *   "Provisional"           → skip (just a label)
+ *   "Acute pain due to trauma" → keep
+ *   "Provisional - Disc Herniation" → strip prefix → "Disc Herniation"
  */
 function cleanDiagnosisText(raw: string): string {
     return raw
         .trim()
         // Remove "Provisional - " / "Final - " prefix
-        .replace(/^(Provisional|Final)\s*[-–—:]\s*/i, '')
-        // Remove trailing numbers/codes
-        .replace(/\s*\d{6,18}\s*$/, '')
+        .replace(/^(Provisional|Final)\s*[-–—:]?\s*/i, '')
+        // Remove trailing numbers/codes (with or without leading space)
+        .replace(/\)?\d{6,18}\s*$/, '')
+        // Remove "View More" button text that may leak in
+        .replace(/View More/gi, '')
         // Remove leading/trailing whitespace and dots
-        .replace(/^[.\s]+|[.\s]+$/g, '')
+        .replace(/^[.·✓✔\s]+|[.·\s]+$/g, '')
         .trim();
 }
 
 /**
  * Clean raw investigation/procedure text from the summary page.
  * Strips trailing CPT codes (long numeric suffixes) that HMIS appends.
+ *
+ * CRITICAL FIX (2026-04-25): HMIS appends digits DIRECTLY to text
+ * with NO whitespace separator:
+ *   "USG FNAC (Fine Needle Aspiration Cytology)00100000000010005"
+ *   "CT Scan Films Charges00100000000076491"
+ *
+ * The old regex \s*\d{10,18}\s*$ required a space before digits and FAILED.
+ * New regex handles both with and without space/paren before digits.
  */
 function cleanInvestigationText(raw: string): string {
     return raw
         .trim()
-        // Strip trailing 10-18 digit CPT codes (e.g., "USG Abdomen001000...")
-        .replace(/\s*\d{10,18}\s*$/, '')
+        // Strip trailing 10-18 digit CPT codes — handles NO space before digits
+        // Matches: "...Cytology)00100000000010005" or "...Charges00100000000076491"
+        .replace(/\)?\d{10,18}\s*$/, '')
         // Strip trailing 5-6 digit CPT codes with separator (e.g., "USG Abdomen - 76700")
         .replace(/\s*[-–]\s*\d{4,6}\s*$/, '')
-        // Remove leading/trailing whitespace and dots
-        .replace(/^[.\s]+|[.\s]+$/g, '')
+        // Remove "View More" button text that may leak in
+        .replace(/View More/gi, '')
+        // Remove specimen/section info that may leak (e.g., "| Special Serum")
+        .replace(/\|\s*Special Serum/gi, '')
+        .replace(/\|\s*SERUM/gi, '')
+        .replace(/\|\s*EDTA.*/gi, '')
+        // Remove leading/trailing whitespace, dots, checkmarks
+        .replace(/^[.·✓✔\s]+|[.·\s]+$/g, '')
         .trim();
 }
 
@@ -208,8 +233,16 @@ function isValidExtractedText(text: string): boolean {
     if (!text || text.length <= 2) return false;
 
     // Filter out common noise strings
-    const noise = ['n/a', 'none', 'nil', '--', '-', 'no', 'na'];
+    const noise = [
+        'n/a', 'none', 'nil', '--', '-', 'no', 'na',
+        'provisional', 'final',                     // bare type labels
+        'no result found', 'no results found',       // empty section markers
+        'view more',                                  // button text leaking in
+    ];
     if (noise.includes(text.toLowerCase())) return false;
+
+    // Filter out strings that are just numbers (residual CPT codes)
+    if (/^\d+$/.test(text)) return false;
 
     return true;
 }
@@ -218,7 +251,9 @@ function isValidExtractedText(text: string): boolean {
  * Check if the text is just a section header (not actual content).
  */
 function isHeaderText(text: string): boolean {
-    const headers = ['radiology', 'investigation', 'procedure', 'order', 'diagnosis'];
+    const headers = ['radiology', 'investigation', 'procedure', 'order', 'diagnosis',
+                     'pathology', 'medication', 'vitals', 'allergies', 'immunization',
+                     'presenting complaints', 'patient summary'];
     const lower = text.toLowerCase();
     return headers.some(h => lower === h || lower === h + ':' || lower === h + 's' || lower === h + 's:');
 }

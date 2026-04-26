@@ -26,6 +26,15 @@ export interface ExtensionConfig {
 
 export type HMISPageContext = 'LOGIN' | 'DEPARTMENT' | 'DASHBOARD' | 'PATIENT_QUEUE' | 'UNKNOWN';
 
+export interface QueuePatient {
+    id: string;        // The DOM ID of the button to click (e.g., tokenPatButton_108187)
+    token: string;
+    name: string;
+    mrn: string;
+    age: string;
+    status: string;    // E.g. "Pending", "Done"
+}
+
 /**
  * Structured patient summary data extracted from HMIS Summary page
  */

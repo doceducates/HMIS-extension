@@ -1,5 +1,5 @@
 import { getCurrentConfig } from './modules/config';
-import { ExtensionConfig } from './modules/types';
+import { ExtensionConfig, QueuePatient } from './modules/types';
 import type { StatusLevel } from './modules/state';
 import { getAIStatus, initAI } from './modules/ai-engine';
 
@@ -62,6 +62,15 @@ const statTotal          = document.getElementById('stat-total')!;
 const statDone           = document.getElementById('stat-done')!;
 const statErr            = document.getElementById('stat-err')!;
 const statPartial        = document.getElementById('stat-partial')!;
+
+// Live Queue elements
+const queueToggle        = document.getElementById('queue-toggle')!;
+const queueView          = document.getElementById('queue-view')!;
+const queueBackBtn       = document.getElementById('queue-back-btn')!;
+const refreshQueueBtn    = document.getElementById('refresh-queue-btn')!;
+const queueList          = document.getElementById('queue-list')!;
+const queueStatusText    = document.getElementById('queue-status-text')!;
+const queueCountBadge    = document.getElementById('queue-count-badge')!;
 
 // Settings elements
 const usernameInput           = document.getElementById('username') as HTMLInputElement;
@@ -180,41 +189,62 @@ function showSettings() {
     dashboardView.classList.add('hidden');
     aboutView.classList.add('hidden');
     recordsView.classList.add('hidden');
+    queueView.classList.add('hidden');
     settingsView.classList.remove('hidden');
     settingsToggle.classList.add('active');
     aboutToggle.classList.remove('active');
     recordsToggle.classList.remove('active');
+    queueToggle.classList.remove('active');
 }
 
 function showDashboard() {
     settingsView.classList.add('hidden');
     aboutView.classList.add('hidden');
     recordsView.classList.add('hidden');
+    queueView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
     settingsToggle.classList.remove('active');
     aboutToggle.classList.remove('active');
     recordsToggle.classList.remove('active');
+    queueToggle.classList.remove('active');
 }
 
 function showAbout() {
     dashboardView.classList.add('hidden');
     settingsView.classList.add('hidden');
     recordsView.classList.add('hidden');
+    queueView.classList.add('hidden');
     aboutView.classList.remove('hidden');
     aboutToggle.classList.add('active');
     settingsToggle.classList.remove('active');
     recordsToggle.classList.remove('active');
+    queueToggle.classList.remove('active');
 }
 
 function showRecords() {
     dashboardView.classList.add('hidden');
     settingsView.classList.add('hidden');
     aboutView.classList.add('hidden');
+    queueView.classList.add('hidden');
     recordsView.classList.remove('hidden');
     recordsToggle.classList.add('active');
     settingsToggle.classList.remove('active');
     aboutToggle.classList.remove('active');
+    queueToggle.classList.remove('active');
     loadAndRenderRecords();
+}
+
+function showQueue() {
+    dashboardView.classList.add('hidden');
+    settingsView.classList.add('hidden');
+    aboutView.classList.add('hidden');
+    recordsView.classList.add('hidden');
+    queueView.classList.remove('hidden');
+    queueToggle.classList.add('active');
+    recordsToggle.classList.remove('active');
+    settingsToggle.classList.remove('active');
+    aboutToggle.classList.remove('active');
+    loadLiveQueue();
 }
 
 // ═══════════════════════════════════════════
@@ -365,6 +395,122 @@ async function clearRecords() {
             loadAndRenderRecords();
         });
     }
+}
+
+// ═══════════════════════════════════════════
+//  LIVE PATIENT QUEUE
+// ═══════════════════════════════════════════
+
+function loadLiveQueue() {
+    queueStatusText.textContent = 'Fetching...';
+    queueList.innerHTML = `
+        <div class="feed-empty">
+            <span class="empty-icon">👥</span>
+            <span>Loading queue...</span>
+        </div>
+    `;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = tabs[0];
+        if (tab?.id && tab.url?.includes('hmis.punjab.gov.pk')) {
+            chrome.tabs.sendMessage(tab.id, { action: 'GET_LIVE_QUEUE' }, (response) => {
+                if (chrome.runtime.lastError || !response) {
+                    queueStatusText.textContent = 'Not on token page';
+                    queueCountBadge.textContent = '0 Patients';
+                    queueList.innerHTML = `
+                        <div class="feed-empty">
+                            <span class="empty-icon" style="color: var(--danger)">⚠</span>
+                            <span>Please open the HMIS Token Queue page first.</span>
+                        </div>
+                    `;
+                } else if (response.queue) {
+                    renderQueue(response.queue);
+                }
+            });
+        } else {
+            queueStatusText.textContent = 'Not on HMIS';
+            queueCountBadge.textContent = '0 Patients';
+            queueList.innerHTML = `
+                <div class="feed-empty">
+                    <span class="empty-icon" style="color: var(--danger)">⚠</span>
+                    <span>Please open the HMIS Token Queue page.</span>
+                </div>
+            `;
+        }
+    });
+}
+
+function renderQueue(queue: QueuePatient[]) {
+    queueList.innerHTML = '';
+    queueStatusText.textContent = 'Live';
+    queueStatusText.style.color = 'var(--success)';
+    queueCountBadge.textContent = `${queue.length} Patient${queue.length !== 1 ? 's' : ''}`;
+
+    if (queue.length === 0) {
+        queueList.innerHTML = `
+            <div class="feed-empty">
+                <span class="empty-icon">✅</span>
+                <span>Queue is empty!</span>
+            </div>
+        `;
+        return;
+    }
+
+    queue.forEach((patient, index) => {
+        const card = document.createElement('div');
+        card.className = `record-card`;
+        card.style.background = 'var(--bg-panel)';
+        card.style.border = '1px solid var(--border)';
+        card.style.borderRadius = 'var(--radius)';
+        card.style.padding = '10px';
+        card.style.marginBottom = '8px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '8px';
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-weight: 600; font-size: 13px; color: var(--text);">${escapeHtml(patient.name)}</div>
+                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">MRN: ${patient.mrn} | Age: ${patient.age}</div>
+                </div>
+                <div class="status-badge" style="font-size: 9px; padding: 2px 6px; border-radius: 10px; background: var(--bg-surface); color: var(--text-muted); font-weight: 700; white-space: nowrap;">
+                    Token: ${patient.token}
+                </div>
+            </div>
+            <button class="save-btn" style="padding: 8px; font-size: 11px; background: linear-gradient(135deg, var(--success), #16a34a); color: white;" data-id="${patient.id}">
+                Process specific patient
+            </button>
+        `;
+
+        const processBtn = card.querySelector('button')!;
+        processBtn.addEventListener('click', () => {
+            processSpecificPatient(patient.id, processBtn);
+        });
+
+        queueList.appendChild(card);
+    });
+}
+
+function processSpecificPatient(patientId: string, btnElement: HTMLButtonElement) {
+    btnElement.textContent = 'Starting...';
+    btnElement.style.opacity = '0.7';
+    btnElement.disabled = true;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = tabs[0];
+        if (tab?.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_SPECIFIC_PATIENT', patientId }, (response) => {
+                if (response?.success) {
+                    showDashboard(); // Switch back to dashboard to see logs
+                } else {
+                    btnElement.textContent = 'Failed';
+                    btnElement.style.background = 'var(--danger)';
+                    alert('Error: ' + (response?.error || 'Could not communicate with page'));
+                }
+            });
+        }
+    });
 }
 
 // ═══════════════════════════════════════════
@@ -562,10 +708,26 @@ function bindEvents() {
         }
     });
 
+    queueToggle.addEventListener('click', () => {
+        if (queueView.classList.contains('hidden')) {
+            showQueue();
+        } else {
+            showDashboard();
+        }
+    });
+
     backBtn.addEventListener('click', showDashboard);
     aboutBackBtn.addEventListener('click', showDashboard);
     recordsBackBtn.addEventListener('click', showDashboard);
+    queueBackBtn.addEventListener('click', showDashboard);
     footerAboutLink.addEventListener('click', showAbout);
+
+    refreshQueueBtn.addEventListener('click', () => {
+        const icon = refreshQueueBtn.textContent;
+        refreshQueueBtn.textContent = '...';
+        loadLiveQueue();
+        setTimeout(() => refreshQueueBtn.textContent = icon, 500);
+    });
 
     clearRecordsBtn.addEventListener('click', clearRecords);
 

@@ -681,7 +681,7 @@
       line-height: 1.5;
     }
   </style>
-  <script type="module" crossorigin src="/assets/popup.html-DqWr6vu1.js"></script>
+  <script type="module" crossorigin src="/assets/popup.html-CwpxCXwa.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
   <link rel="modulepreload" crossorigin href="/assets/config-MDwnjWcN.js">
 </head>
@@ -703,6 +703,7 @@
         <span class="dot"></span>
         <span id="status-pill-text">Idle</span>
       </div>
+      <button id="queue-toggle" class="icon-btn" title="Live Queue">👥</button>
       <button id="records-toggle" class="icon-btn" title="Records">📊</button>
       <button id="about-toggle" class="icon-btn" title="About">ℹ</button>
       <button id="settings-toggle" class="icon-btn" title="Settings">⚙</button>
@@ -756,6 +757,31 @@
       <div class="feed-empty">
         <span class="empty-icon">📋</span>
         <span>No activity yet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ LIVE QUEUE VIEW ═══════ -->
+  <div id="queue-view" class="view hidden">
+    <div class="settings-header">
+      <button id="queue-back-btn" class="back-btn" title="Back to Dashboard">←</button>
+      <span class="settings-title">Live Patient Queue</span>
+      <button id="refresh-queue-btn" class="icon-btn" style="margin-left: auto; width: 28px; height: 28px; font-size: 14px;" title="Refresh Queue">🔄</button>
+    </div>
+
+    <div class="card" style="padding: 10px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-size: 11px; color: var(--text-muted);">
+        <strong>Status:</strong> <span id="queue-status-text">Fetching...</span>
+      </div>
+      <div class="status-badge" id="queue-count-badge" style="font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--bg-surface); color: var(--text-muted); font-weight: 700;">
+        0 Patients
+      </div>
+    </div>
+
+    <div id="queue-list" style="height: 310px; overflow-y: auto; padding-right: 4px;">
+      <div class="feed-empty">
+        <span class="empty-icon">👥</span>
+        <span>Loading queue...</span>
       </div>
     </div>
   </div>

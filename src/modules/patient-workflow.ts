@@ -108,17 +108,18 @@ export async function activateAutoPilot(config: ExtensionConfig) {
     try {
         // ── Step 1: Navigate to Summary and Extract Data ──
         await saveCheckpoint(checkpoint);
-        await navigateToTab(HMIS_SELECTORS.SIDE_MENU.SUMMARY, 'Summary');
+        await navigateToTab(HMIS_SELECTORS.SIDE_MENU.SUMMARY_TEXT, 'Summary');
         await delay(TIMING.SUMMARY_RENDER);
         const extracted = await extractDataFromSummary();
         reportStatus(`Extracted: ${extracted.diagnoses.length} diagnosis(es), ${extracted.investigations.length} investigation(s)`, 'info');
         console.log('Extracted Summary Data:', extracted);
 
-        // Update record
-        const nameEl = document.querySelector(HMIS_SELECTORS.PATIENT_INFO.NAME);
-        const mrnEl = document.querySelector(HMIS_SELECTORS.PATIENT_INFO.MRN);
-        if (nameEl && nameEl.textContent) record.patientName = nameEl.textContent.trim();
-        if (mrnEl && mrnEl.textContent) record.mrn = mrnEl.textContent.trim();
+        // Update record — parse patient info from the text bar
+        // HMIS uses a flat text bar: "Name: X | Contact: Y | Age: Z | MRN: 123..."
+        const patientInfo = extractPatientInfo();
+        record.patientName = patientInfo.name;
+        record.mrn = patientInfo.mrn;
+        checkpoint.patientInfo = patientInfo.name;
         record.completedSteps.push('summary');
 
         checkpoint.completedSteps.push('summary');
@@ -149,7 +150,7 @@ export async function activateAutoPilot(config: ExtensionConfig) {
                 return;
             }
 
-            await navigateToTab(HMIS_SELECTORS.SIDE_MENU.DIAGNOSIS, 'Diagnosis');
+            await navigateToTab(HMIS_SELECTORS.SIDE_MENU.DIAGNOSIS_TEXT, 'Diagnosis');
             await delay(TIMING.TAB_SETTLE);
 
             for (const diag of resolved.diagnoses) {
@@ -182,7 +183,7 @@ export async function activateAutoPilot(config: ExtensionConfig) {
                 return;
             }
 
-            await navigateToTab(HMIS_SELECTORS.SIDE_MENU.ORDER, 'Order/Investigations');
+            await navigateToTab(HMIS_SELECTORS.SIDE_MENU.ORDER_TEXT, 'Order');
             await delay(TIMING.SELECT_SETTLE);
 
             // Click the Investigation sub-tab
@@ -274,17 +275,20 @@ export async function activateAutoPilot(config: ExtensionConfig) {
 
 /**
  * Navigate to a sidebar tab and wait for Livewire to settle.
- * Tries the CSS selector first, then falls back to text-based matching.
+ *
+ * HMIS sidebar links use href="javascript:void(0)" with wire:click,
+ * so CSS href-based selectors DO NOT work. We use text-based matching
+ * as the PRIMARY approach (verified working against live DOM).
  */
-async function navigateToTab(selector: string, name: string) {
+async function navigateToTab(textLabel: string, name: string) {
     checkAbort();
 
-    // Try CSS selector first
-    let tab = document.querySelector(selector) as HTMLElement;
+    // Primary: find by visible text in sidebar links (proven reliable)
+    let tab = findByText('a', name) as HTMLElement;
 
-    // Fallback: find by visible text in sidebar links
+    // Narrow fallback: try common sidebar link selectors
     if (!tab) {
-        tab = findByText('a.nav-link, .nav-item a, .sidebar a', name) as HTMLElement;
+        tab = findByText('.nav-link, .nav-item a, .left_col a, nav a', name) as HTMLElement;
     }
 
     if (tab) {
@@ -292,8 +296,45 @@ async function navigateToTab(selector: string, name: string) {
         tab.click();
         await waitForLivewire(TIMING.TAB_SETTLE);
     } else {
-        reportStatus(`Tab "${name}" not found (selector: ${selector})`, 'error');
+        reportStatus(`Tab "${name}" not found in sidebar`, 'error');
     }
+}
+
+/**
+ * Extract patient name and MRN from the "Patient Information" text bar.
+ *
+ * HMIS format (verified live):
+ *   "Name: SHAFIA M RIZWAN | Contact: 0300-6566007 | Age: 46y, 2m, 19d | MRN: 19202644951180 | ..."
+ *
+ * There are NO dedicated CSS classes for individual fields — it's all in one text block.
+ */
+function extractPatientInfo(): { name: string; mrn: string } {
+    // Try multiple containers that might hold the patient info bar
+    const containers = document.querySelectorAll(
+        '.x_content, [class*="patient"], .right_col > div:first-child, .patient-info-bar'
+    );
+
+    let fullText = '';
+    for (const container of Array.from(containers)) {
+        const text = container.textContent || '';
+        if (text.includes('Name:') && text.includes('MRN:')) {
+            fullText = text;
+            break;
+        }
+    }
+
+    // If no container matched, try the whole page body (less precise)
+    if (!fullText) {
+        fullText = document.body.textContent || '';
+    }
+
+    const nameMatch = fullText.match(/Name:\s*([^|]+)/);
+    const mrnMatch = fullText.match(/MRN:\s*(\d+)/);
+
+    return {
+        name: nameMatch ? nameMatch[1].trim() : 'Unknown Patient',
+        mrn: mrnMatch ? mrnMatch[1].trim() : 'Unknown MRN',
+    };
 }
 
 function handleWorkflowError(err: any) {
@@ -312,11 +353,11 @@ function handleWorkflowError(err: any) {
 async function safeReleaseToken(record: PatientRecord): Promise<void> {
     try {
         reportStatus('Releasing patient token to prevent lock...', 'progress');
-        
-        const releaseBtn = document.querySelector('a[href*="resetTokenHomeButton"]') as HTMLElement || 
-                           document.querySelector(HMIS_SELECTORS.NAV.HOME_BTN) as HTMLElement ||
-                           document.querySelector('.btn-release-token') as HTMLElement;
-                           
+
+        // Primary selector (verified working): a[href*="resetTokenHomeButton"]
+        const releaseBtn = document.querySelector(HMIS_SELECTORS.NAV.HOME_BTN) as HTMLElement
+            || findByText('a, button', 'Release Patient Token') as HTMLElement;
+
         if (releaseBtn) {
             releaseBtn.click();
             record.tokenReleased = true;
