@@ -207,18 +207,37 @@ import { suggestDiagnoses, suggestInvestigations } from './ai-engine';
  */
 export async function resolveWorkflow(
     extracted: ExtractedSummaryData,
-    config: ExtensionConfig
+    config: ExtensionConfig,
+    mode?: 'assess' | 'procedure'
 ): Promise<ResolvedWorkflowData> {
     const hasDiagnosis = extracted.diagnoses.length > 0;
     const hasInvestigation = extracted.investigations.length > 0;
 
+    // ── Apply Assessment Mode if explicitly requested ──
+    // This intercepts any investigations that are procedures and converts them to USG
+    let finalInvestigations = extracted.investigations;
+    if (mode === 'assess' && hasInvestigation) {
+        finalInvestigations = finalInvestigations.map(inv => {
+            const invLower = inv.toLowerCase();
+            if (['pleural', 'thoracentesis'].some(k => invLower.includes(k))) return 'USG Chest';
+            if (['ascitic', 'paracentesis', 'ptbd'].some(k => invLower.includes(k))) return 'USG Abdomen';
+            if (['thyroid', 'neck'].some(k => invLower.includes(k))) return 'USG Thyroid';
+            if (['breast'].some(k => invLower.includes(k))) return 'USG Breast';
+            if (['fnac', 'biopsy', 'trucut', 'core', 'tap', 'drain', 'pigtail', 'collection'].some(k => invLower.includes(k))) return 'USG Swelling';
+            return inv; // return original if it's not a known procedural keyword
+        });
+        // Remove duplicates after mapping
+        finalInvestigations = [...new Set(finalInvestigations)];
+        reportStatus(`Assessment Mode ON: Converted procedures to USG`, 'info');
+    }
+
     // ── SCENARIO A: Both present — use what the referring doctor ordered ──
-    if (hasDiagnosis && hasInvestigation) {
-        const reasoning = `Summary has ${extracted.diagnoses.length} diagnosis(es) and ${extracted.investigations.length} investigation(s) — using all`;
+    if (hasDiagnosis && finalInvestigations.length > 0) {
+        const reasoning = `Summary has ${extracted.diagnoses.length} diagnosis(es) and ${extracted.investigations.length} investigation(s) — using all (Mode: ${mode || 'auto'})`;
         reportStatus(reasoning, 'info');
         return {
             diagnoses: extracted.diagnoses,
-            investigations: extracted.investigations,
+            investigations: finalInvestigations,
             scenario: 'A',
             reasoning,
         };
@@ -265,15 +284,15 @@ export async function resolveWorkflow(
     }
 
     // ── SCENARIO C: Investigation present, NO diagnosis → infer diagnosis ──
-    if (!hasDiagnosis && hasInvestigation) {
-        let diagnoses = matchInvestigationToDiagnosis(extracted.investigations);
+    if (!hasDiagnosis && finalInvestigations.length > 0) {
+        let diagnoses = matchInvestigationToDiagnosis(finalInvestigations);
         let reasoning = '';
 
         // Tier 2 Fallback: AI Suggestions
         if (diagnoses.length === 0 && config.aiAssistEnabled) {
             reportStatus('Tier 1 rules empty — calling Tier 2 AI for diagnosis...', 'progress');
             const aiSuggestions = await suggestDiagnoses(
-                extracted.investigations.join(' '), 
+                finalInvestigations.join(' '), 
                 3, 
                 config.aiConfidenceThreshold
             );
@@ -298,7 +317,7 @@ export async function resolveWorkflow(
 
         return {
             diagnoses,
-            investigations: extracted.investigations,
+            investigations: finalInvestigations,
             scenario: 'C',
             reasoning,
         };

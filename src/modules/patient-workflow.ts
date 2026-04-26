@@ -130,7 +130,15 @@ export async function activateAutoPilot(config: ExtensionConfig) {
         // This handles ALL scenarios: both present, diagnosis-only,
         // investigation-only, and completely empty summaries.
         // TIER 2: This now optionally calls the AI embedding model.
-        const resolved = await resolveWorkflow(extracted, config);
+        let mode: 'assess' | 'procedure' | undefined;
+        try {
+            const session = await chrome.storage.session.get('targetedMode');
+            mode = session.targetedMode as 'assess' | 'procedure' | undefined;
+            // Clear it so it doesn't leak to next patient if using auto-loop
+            await chrome.storage.session.remove('targetedMode');
+        } catch { /* Silent */ }
+
+        const resolved = await resolveWorkflow(extracted, config, mode);
         checkpoint.scenario = resolved.scenario;
         await saveCheckpoint(checkpoint);
 
@@ -156,7 +164,7 @@ export async function activateAutoPilot(config: ExtensionConfig) {
             for (const diag of resolved.diagnoses) {
                 checkAbort();
                 try {
-                    const result = await addDiagnosis(config.defaultDiagnosisType || 'Provisional', diag);
+                    const result = await addDiagnosis(config.defaultDiagnosisType || 'Provisional', diag, config);
                     if (result.error) {
                         record.errors.push({ step: 'diagnosis', message: result.error.message, timestamp: new Date().toISOString() });
                     }
@@ -197,7 +205,7 @@ export async function activateAutoPilot(config: ExtensionConfig) {
             for (const inv of resolved.investigations) {
                 checkAbort();
                 try {
-                    const result = await addInvestigation(inv);
+                    const result = await addInvestigation(inv, config);
                     if (result.error) {
                         record.errors.push({ step: 'investigation', message: result.error.message, timestamp: new Date().toISOString() });
                     }

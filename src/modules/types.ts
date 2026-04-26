@@ -22,6 +22,8 @@ export interface ExtensionConfig {
     aiAssistEnabled: boolean;         // Master toggle for Tier 2 AI
     aiConfidenceThreshold: number;    // 0-1, default 0.5 — minimum cosine similarity to accept
     aiAutoApply: boolean;             // true = auto-select best match, false = log suggestions only
+    // Advanced Workflow
+    preventDuplicateOrders: boolean;
 }
 
 export type HMISPageContext = 'LOGIN' | 'DEPARTMENT' | 'DASHBOARD' | 'PATIENT_QUEUE' | 'UNKNOWN';

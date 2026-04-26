@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     aiAssistEnabled: false,
     aiConfidenceThreshold: 0.5,
     aiAutoApply: true,
+    preventDuplicateOrders: true,
 };
 
 export async function getCurrentConfig(): Promise<ExtensionConfig> {

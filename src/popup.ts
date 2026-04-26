@@ -79,6 +79,7 @@ const roleIdInput             = document.getElementById('role-id') as HTMLInputE
 const defaultComplaintInput   = document.getElementById('default-complaint') as HTMLInputElement;
 const defaultDiagnosisInput   = document.getElementById('default-diagnosis') as HTMLInputElement;
 const defaultInvestigationInput = document.getElementById('default-investigation') as HTMLInputElement;
+const preventDuplicatesInput  = document.getElementById('prevent-duplicates') as HTMLInputElement;
 const aiThresholdInput        = document.getElementById('ai-threshold') as HTMLInputElement;
 const aiThresholdVal          = document.getElementById('ai-threshold-val')!;
 const aiStatusPill            = document.getElementById('ai-status-pill')!;
@@ -478,29 +479,40 @@ function renderQueue(queue: QueuePatient[]) {
                     Token: ${patient.token}
                 </div>
             </div>
-            <button class="save-btn" style="padding: 8px; font-size: 11px; background: linear-gradient(135deg, var(--success), #16a34a); color: white;" data-id="${patient.id}">
-                Process specific patient
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="save-btn assess-btn" style="flex: 1; padding: 6px; font-size: 11px; background: var(--bg-surface); color: var(--text); border: 1px solid var(--border);" data-id="${patient.id}">
+                    🩺 Assess
+                </button>
+                <button class="save-btn procedure-btn" style="flex: 1; padding: 6px; font-size: 11px; background: linear-gradient(135deg, var(--success), #16a34a); color: white;" data-id="${patient.id}">
+                    💉 Procedure
+                </button>
+            </div>
         `;
 
-        const processBtn = card.querySelector('button')!;
-        processBtn.addEventListener('click', () => {
-            processSpecificPatient(patient.id, processBtn);
+        const assessBtn = card.querySelector('.assess-btn') as HTMLButtonElement;
+        const procedureBtn = card.querySelector('.procedure-btn') as HTMLButtonElement;
+
+        assessBtn.addEventListener('click', () => {
+            processSpecificPatient(patient.id, 'assess', assessBtn);
+        });
+
+        procedureBtn.addEventListener('click', () => {
+            processSpecificPatient(patient.id, 'procedure', procedureBtn);
         });
 
         queueList.appendChild(card);
     });
 }
 
-function processSpecificPatient(patientId: string, btnElement: HTMLButtonElement) {
-    btnElement.textContent = 'Starting...';
+function processSpecificPatient(patientId: string, mode: 'assess' | 'procedure', btnElement: HTMLButtonElement) {
+    btnElement.textContent = '...';
     btnElement.style.opacity = '0.7';
     btnElement.disabled = true;
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const tab = tabs[0];
         if (tab?.id) {
-            chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_SPECIFIC_PATIENT', patientId }, (response) => {
+            chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_SPECIFIC_PATIENT', patientId, mode }, (response) => {
                 if (response?.success) {
                     showDashboard(); // Switch back to dashboard to see logs
                 } else {
@@ -588,6 +600,9 @@ function populateSettings(config: ExtensionConfig) {
     // AI Settings
     aiThresholdInput.value         = (config.aiConfidenceThreshold || 0.5).toString();
     aiThresholdVal.textContent     = (config.aiConfidenceThreshold || 0.5).toFixed(2);
+    
+    // Advanced Settings
+    preventDuplicatesInput.checked = config.preventDuplicateOrders ?? true;
 }
 
 async function saveSettings() {
@@ -599,6 +614,7 @@ async function saveSettings() {
         defaultDiagnosisQuery:   defaultDiagnosisInput.value.trim(),
         defaultInvestigationName: defaultInvestigationInput.value.trim(),
         aiConfidenceThreshold:   parseFloat(aiThresholdInput.value),
+        preventDuplicateOrders:  preventDuplicatesInput.checked,
     };
 
     try {

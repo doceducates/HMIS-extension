@@ -175,9 +175,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         const btnId = request.patientId;
         const btn = document.getElementById(btnId);
         if (btn) {
-            reportStatus(`Starting targeted workflow for patient...`, 'progress');
+            reportStatus(`Starting targeted workflow for patient (${request.mode})...`, 'progress');
             setRunning(true);
-            chrome.storage.session.set({ loginAttempts: 0, setupCompleted: true }); // Prevent setup loop
+            chrome.storage.session.set({ 
+                loginAttempts: 0, 
+                setupCompleted: true,
+                targetedMode: request.mode // 'assess' or 'procedure'
+            }); // Prevent setup loop
             btn.click();
             sendResponse({ success: true });
         } else {

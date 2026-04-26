@@ -24,24 +24,26 @@ import { StepResult } from './types';
  * @param type   Diagnosis type — "Provisional" or "Final"
  * @param query  The diagnosis text to search for
  */
-export async function addDiagnosis(type: string, query: string): Promise<StepResult> {
+export async function addDiagnosis(type: string, query: string, config: ExtensionConfig): Promise<StepResult> {
     return await retryWithBackoff(
-        () => _addDiagnosisAttempt(type, query),
+        () => _addDiagnosisAttempt(type, query, config),
         `addDiagnosis("${query}")`,
         2, // max 2 attempts
         1500
     );
 }
 
-async function _addDiagnosisAttempt(type: string, query: string): Promise<StepResult> {
+async function _addDiagnosisAttempt(type: string, query: string, config: ExtensionConfig): Promise<StepResult> {
     reportStatus(`Adding diagnosis: "${query}"...`, 'progress');
 
-    // Check if already present in table
-    const existingRows = document.querySelectorAll('.table-striped tbody tr, #diagnosis-component table tbody tr');
-    for (const row of Array.from(existingRows)) {
-        if (row.textContent?.toLowerCase().includes(query.toLowerCase())) {
-            reportStatus(`Diagnosis "${query}" already present — skipped`, 'info');
-            return { success: true, skipped: true };
+    // Check if already present in table (if safeguard is enabled)
+    if (config.preventDuplicateOrders !== false) {
+        const existingRows = document.querySelectorAll('.table-striped tbody tr, #diagnosis-component table tbody tr');
+        for (const row of Array.from(existingRows)) {
+            if (row.textContent?.toLowerCase().includes(query.toLowerCase())) {
+                reportStatus(`Diagnosis "${query}" already present — skipped`, 'info');
+                return { success: true, skipped: true };
+            }
         }
     }
 

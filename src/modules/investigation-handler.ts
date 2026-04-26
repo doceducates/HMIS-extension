@@ -15,24 +15,35 @@ import { setLivewireInput, waitForLivewire, clickLivewireElement } from './livew
 import { reportStatus } from './state';
 import { findBestMatch } from './match-engine';
 import { delay, checkAbort, retryWithBackoff, TIMING } from './utils';
-import { StepResult } from './types';
+import { ExtensionConfig, StepResult } from './types';
 
 /**
  * Add a single investigation order to the HMIS Investigation tab.
  *
  * @param name  The investigation/CPT name to search for
  */
-export async function addInvestigation(name: string): Promise<StepResult> {
+export async function addInvestigation(name: string, config: ExtensionConfig): Promise<StepResult> {
     return await retryWithBackoff(
-        () => _addInvestigationAttempt(name),
+        () => _addInvestigationAttempt(name, config),
         `addInvestigation("${name}")`,
         2, // max 2 attempts
         1500
     );
 }
 
-async function _addInvestigationAttempt(name: string): Promise<StepResult> {
+async function _addInvestigationAttempt(name: string, config: ExtensionConfig): Promise<StepResult> {
     reportStatus(`Ordering investigation: "${name}"...`, 'progress');
+
+    // Check if already present in table (if safeguard is enabled)
+    if (config.preventDuplicateOrders !== false) {
+        const existingRows = document.querySelectorAll('.table-striped tbody tr, #order-investigation-component table tbody tr, .investigation-list tbody tr');
+        for (const row of Array.from(existingRows)) {
+            if (row.textContent?.toLowerCase().includes(name.toLowerCase())) {
+                reportStatus(`Investigation "${name}" already present — skipped`, 'info');
+                return { success: true, skipped: true };
+            }
+        }
+    }
 
     // Type into the search field
     const queryInput = document.querySelector(HMIS_SELECTORS.INVESTIGATION.QUERY_INPUT) as HTMLInputElement;
