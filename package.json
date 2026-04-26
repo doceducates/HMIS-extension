@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "pack": "npm run build && crx pack dist -p HMIS.pem -o dist/HMIS-Autopilot.crx",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0-beta.23",
     "@types/chrome": "^0.1.39",
+    "crx": "^5.0.1",
     "typescript": "^5.0.2",
     "vite": "^5.2.0",
     "vite-plugin-static-copy": "^1.0.6"
