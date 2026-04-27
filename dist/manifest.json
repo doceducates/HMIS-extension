@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.ts-loader-DO51dIVP.js"
+        "assets/content.ts-loader-CObJEb_3.js"
       ],
       "matches": [
         "*://hmis.punjab.gov.pk/*"
@@ -50,7 +50,7 @@
       ],
       "resources": [
         "assets/config-BtK0xERG.js",
-        "assets/content.ts-Dk_I9Ldu.js"
+        "assets/content.ts-jU8dtuUo.js"
       ],
       "use_dynamic_url": false
     }

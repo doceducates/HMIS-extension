@@ -459,52 +459,44 @@ function renderQueue(queue: QueuePatient[]) {
 
     queue.forEach((patient, index) => {
         const card = document.createElement('div');
-        card.className = `record-card`;
-        card.style.background = 'var(--bg-panel)';
-        card.style.border = '1px solid var(--border)';
-        card.style.borderRadius = 'var(--radius)';
-        card.style.padding = '10px';
-        card.style.marginBottom = '8px';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.gap = '8px';
+        card.className = 'queue-card';
 
         card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="queue-card-header">
                 <div>
-                    <div style="font-weight: 600; font-size: 13px; color: var(--text);">${escapeHtml(patient.name)}</div>
-                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">MRN: ${patient.mrn} | Age: ${patient.age}</div>
+                    <div class="queue-card-name">${escapeHtml(patient.name)}</div>
+                    <div class="queue-card-meta">MRN: ${patient.mrn} | Age: ${patient.age}</div>
                 </div>
-                <div class="status-badge" style="font-size: 9px; padding: 2px 6px; border-radius: 10px; background: var(--bg-surface); color: var(--text-muted); font-weight: 700; white-space: nowrap;">
-                    Token: ${patient.token}
-                </div>
+                <div class="queue-card-token">Token: ${patient.token}</div>
             </div>
-            <div style="display: flex; gap: 8px;">
-                <button class="save-btn assess-btn" style="flex: 1; padding: 6px; font-size: 11px; background: var(--bg-surface); color: var(--text); border: 1px solid var(--border);" data-id="${patient.id}">
-                    🩺 Assess
-                </button>
-                <button class="save-btn procedure-btn" style="flex: 1; padding: 6px; font-size: 11px; background: linear-gradient(135deg, var(--success), #16a34a); color: white;" data-id="${patient.id}">
-                    💉 Procedure
-                </button>
+            <div class="queue-btn-group">
+                <button class="queue-btn assess" data-tooltip="Assessment Mode: Convert procedures to USG" data-id="${patient.id}">🩺</button>
+                <button class="queue-btn procedure" data-tooltip="Procedure Mode: Keep procedures as-is" data-id="${patient.id}">💉</button>
+                <button class="queue-btn auto" data-tooltip="Auto Mode: Use defaults from summary" data-id="${patient.id}">⚡</button>
             </div>
         `;
 
-        const assessBtn = card.querySelector('.assess-btn') as HTMLButtonElement;
-        const procedureBtn = card.querySelector('.procedure-btn') as HTMLButtonElement;
+        const assessBtn = card.querySelector('.queue-btn.assess') as HTMLButtonElement;
+        const procedureBtn = card.querySelector('.queue-btn.procedure') as HTMLButtonElement;
+        const autoBtn = card.querySelector('.queue-btn.auto') as HTMLButtonElement;
 
-        assessBtn.addEventListener('click', () => {
+        assessBtn?.addEventListener('click', () => {
             processSpecificPatient(patient.id, 'assess', assessBtn);
         });
 
-        procedureBtn.addEventListener('click', () => {
+        procedureBtn?.addEventListener('click', () => {
             processSpecificPatient(patient.id, 'procedure', procedureBtn);
+        });
+
+        autoBtn?.addEventListener('click', () => {
+            processSpecificPatient(patient.id, 'auto', autoBtn);
         });
 
         queueList.appendChild(card);
     });
 }
 
-function processSpecificPatient(patientId: string, mode: 'assess' | 'procedure', btnElement: HTMLButtonElement) {
+function processSpecificPatient(patientId: string, mode: 'assess' | 'procedure' | 'auto', btnElement: HTMLButtonElement) {
     btnElement.textContent = '...';
     btnElement.style.opacity = '0.7';
     btnElement.disabled = true;
@@ -516,7 +508,7 @@ function processSpecificPatient(patientId: string, mode: 'assess' | 'procedure',
                 if (response?.success) {
                     showDashboard(); // Switch back to dashboard to see logs
                 } else {
-                    btnElement.textContent = 'Failed';
+                    btnElement.textContent = '✕';
                     btnElement.style.background = 'var(--danger)';
                     alert('Error: ' + (response?.error || 'Could not communicate with page'));
                 }

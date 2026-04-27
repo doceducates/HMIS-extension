@@ -173,15 +173,25 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
     if (request.action === 'PROCESS_SPECIFIC_PATIENT') {
         const btnId = request.patientId;
+        const mode = request.mode;
         const btn = document.getElementById(btnId);
         if (btn) {
-            reportStatus(`Starting targeted workflow for patient (${request.mode})...`, 'progress');
+            const modeLabel = mode === 'auto' ? 'auto-flow' : mode;
+            reportStatus(`Starting ${modeLabel} for patient...`, 'progress');
             setRunning(true);
-            chrome.storage.session.set({ 
-                loginAttempts: 0, 
-                setupCompleted: true,
-                targetedMode: request.mode // 'assess' or 'procedure'
-            }); // Prevent setup loop
+            
+            if (mode === 'auto') {
+                chrome.storage.session.set({ 
+                    loginAttempts: 0, 
+                    setupCompleted: true
+                });
+            } else {
+                chrome.storage.session.set({ 
+                    loginAttempts: 0, 
+                    setupCompleted: true,
+                    targetedMode: mode
+                });
+            }
             btn.click();
             sendResponse({ success: true });
         } else {
